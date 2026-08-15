@@ -7,11 +7,13 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import downloader  # noqa: E402
 from downloader import (  # noqa: E402
     content_disposition,
     is_valid_youtube_url,
     safe_filename,
 )
+from yt_dlp.utils import DownloadError as YtDlpDownloadError  # noqa: E402
 
 
 @pytest.mark.parametrize(
@@ -99,3 +101,70 @@ def test_content_disposition_unicode_is_header_safe():
 def test_content_disposition_strips_quotes():
     header = content_disposition('ev"il.mp3')
     assert 'filename="evil.mp3"' in header
+
+
+# --- transient-failure retry -------------------------------------------------
+#
+# YouTube intermittently rejects an otherwise-good stream URL with HTTP 403.
+# A fresh extraction yields a fresh URL, so download_mp3 retries those.
+
+
+class _FakeYDL:
+    """Stands in for YoutubeDL: fails with the queued errors, then succeeds."""
+
+    def __init__(self, errors, workdir):
+        self._errors = list(errors)
+        self._workdir = workdir
+        self.attempts = 0
+
+    def __call__(self, opts):  # YoutubeDL(opts)
+        return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def extract_info(self, url, download=True):
+        self.attempts += 1
+        if self._errors:
+            raise YtDlpDownloadError(self._errors.pop(0))
+        (self._workdir / "song.mp3").write_bytes(b"ID3fake")
+        return {"title": "Song"}
+
+
+@pytest.fixture
+def no_sleep(monkeypatch):
+    monkeypatch.setattr(downloader.time, "sleep", lambda _s: None)
+
+
+def test_download_mp3_retries_after_transient_403(tmp_path, monkeypatch, no_sleep):
+    fake = _FakeYDL(["ERROR: unable to download video data: HTTP Error 403: Forbidden"], tmp_path)
+    monkeypatch.setattr(downloader, "YoutubeDL", fake)
+
+    result = downloader.download_mp3("https://youtu.be/x", tmp_path)
+
+    assert fake.attempts == 2
+    assert result.title == "Song"
+    assert result.path.name == "song.mp3"
+
+
+def test_download_mp3_gives_up_after_max_attempts(tmp_path, monkeypatch, no_sleep):
+    fake = _FakeYDL(["HTTP Error 403: Forbidden"] * 10, tmp_path)
+    monkeypatch.setattr(downloader, "YoutubeDL", fake)
+
+    with pytest.raises(downloader.DownloadError, match="403"):
+        downloader.download_mp3("https://youtu.be/x", tmp_path)
+
+    assert fake.attempts == downloader.MAX_DOWNLOAD_ATTEMPTS
+
+
+def test_download_mp3_does_not_retry_permanent_failure(tmp_path, monkeypatch, no_sleep):
+    fake = _FakeYDL(["ERROR: Video unavailable"] * 10, tmp_path)
+    monkeypatch.setattr(downloader, "YoutubeDL", fake)
+
+    with pytest.raises(downloader.DownloadError, match="unavailable"):
+        downloader.download_mp3("https://youtu.be/x", tmp_path)
+
+    assert fake.attempts == 1

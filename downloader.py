@@ -7,6 +7,7 @@ the HTTP layer in main.py stays thin.
 from __future__ import annotations
 
 import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import quote
@@ -29,6 +30,25 @@ _YOUTUBE_URL_RE = re.compile(
 _ILLEGAL_FILENAME_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 
 _MAX_FILENAME_LEN = 150
+
+# YouTube intermittently answers a freshly-issued stream URL with 403, and
+# occasionally drops the connection mid-transfer. Re-extracting gets a new URL,
+# so those are worth one or two more tries; anything else (private/removed
+# video, bad link) fails the same way every time and is surfaced immediately.
+MAX_DOWNLOAD_ATTEMPTS = 3
+_RETRY_DELAY_S = 2.0
+_TRANSIENT_ERROR_RE = re.compile(
+    r"HTTP Error (?:403|429|5\d\d)"
+    r"|unable to download video data"
+    r"|read operation timed out"
+    r"|connection (?:reset|aborted)"
+    r"|temporary failure",
+    re.IGNORECASE,
+)
+
+
+def _is_transient(message: str) -> bool:
+    return bool(_TRANSIENT_ERROR_RE.search(message))
 
 
 class DownloadError(Exception):
@@ -80,6 +100,23 @@ def content_disposition(filename: str) -> str:
     return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(filename)}"
 
 
+def _extract_with_retry(url: str, ydl_opts: dict) -> dict:
+    """Run yt-dlp, retrying transient failures with a fresh extraction.
+
+    Raises ``DownloadError`` once the failure is permanent or the attempts
+    are spent.
+    """
+    for attempt in range(1, MAX_DOWNLOAD_ATTEMPTS + 1):
+        try:
+            with YoutubeDL(ydl_opts) as ydl:
+                return ydl.extract_info(url, download=True)
+        except YtDlpDownloadError as exc:
+            if attempt == MAX_DOWNLOAD_ATTEMPTS or not _is_transient(str(exc)):
+                raise DownloadError(str(exc)) from exc
+            time.sleep(_RETRY_DELAY_S * attempt)
+    raise DownloadError("Download failed after retries.")  # unreachable
+
+
 def download_mp3(url: str, workdir: Path) -> DownloadResult:
     """Download ``url`` as a 320k MP3 into ``workdir`` with tags + cover art.
 
@@ -104,11 +141,7 @@ def download_mp3(url: str, workdir: Path) -> DownloadResult:
         ],
     }
 
-    try:
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-    except YtDlpDownloadError as exc:
-        raise DownloadError(str(exc)) from exc
+    info = _extract_with_retry(url, ydl_opts)
 
     # A single video may still be wrapped in an "entries" list by yt-dlp.
     if info.get("_type") == "playlist" and info.get("entries"):
