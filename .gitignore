@@ -6,3 +6,6 @@ downloads/
 
 # downloaded audio
 *.mp3
+
+# curl -O artifact from POST /download
+/download
