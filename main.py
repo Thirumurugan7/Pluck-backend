@@ -28,21 +28,41 @@ logging.basicConfig(level=logging.INFO)
 app = FastAPI(title="yt2mp3", description="Local YouTube→MP3 downloader")
 
 
+# yt-dlp needs a JavaScript runtime to decipher YouTube stream signatures;
+# without one, many current videos fail to download with HTTP 403.
+_JS_RUNTIMES = ("deno", "node", "bun")
+
+
+def _has_js_runtime() -> bool:
+    return any(shutil.which(rt) for rt in _JS_RUNTIMES)
+
+
 @app.on_event("startup")
-def _warn_if_no_ffmpeg() -> None:
+def _warn_missing_tools() -> None:
     if shutil.which("ffmpeg") is None:
         logger.warning(
             "ffmpeg not found on PATH. Install it with `brew install ffmpeg` "
             "or /download will fail."
+        )
+    if not _has_js_runtime():
+        logger.warning(
+            "No JavaScript runtime found. Install one with `brew install deno` "
+            "or many YouTube downloads will fail with HTTP 403."
         )
 
 
 @app.get("/health")
 def health() -> JSONResponse:
     ffmpeg_ok = shutil.which("ffmpeg") is not None
+    js_ok = _has_js_runtime()
+    healthy = ffmpeg_ok and js_ok
     return JSONResponse(
-        status_code=200 if ffmpeg_ok else 503,
-        content={"status": "ok" if ffmpeg_ok else "degraded", "ffmpeg": ffmpeg_ok},
+        status_code=200 if healthy else 503,
+        content={
+            "status": "ok" if healthy else "degraded",
+            "ffmpeg": ffmpeg_ok,
+            "js_runtime": js_ok,
+        },
     )
 
 

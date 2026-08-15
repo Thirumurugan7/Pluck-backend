@@ -6,10 +6,13 @@ Runs on your Mac, on `127.0.0.1` only. You drive it with `curl`.
 ## Prerequisites
 
 - Python 3.11+
-- ffmpeg:
-  ```bash
-  brew install ffmpeg
-  ```
+- ffmpeg — for the MP3 conversion and tag/cover embedding
+- deno (or node/bun) — a JavaScript runtime yt-dlp uses to decipher YouTube
+  stream signatures. Without it, many current videos fail with `HTTP 403`.
+
+```bash
+brew install ffmpeg deno
+```
 
 ## Setup
 
@@ -42,7 +45,7 @@ Check that ffmpeg is available:
 
 ```bash
 curl http://127.0.0.1:8000/health
-# {"status":"ok","ffmpeg":true}
+# {"status":"ok","ffmpeg":true,"js_runtime":true}
 ```
 
 ## API
@@ -50,7 +53,7 @@ curl http://127.0.0.1:8000/health
 | Method | Path        | Body (form)      | Result |
 |--------|-------------|------------------|--------|
 | POST   | `/download` | `url=<youtube>`  | streams `audio/mpeg`; filename from the video title. `400` bad URL, `422` download failure |
-| GET    | `/health`   | —                | `200` if ffmpeg present, else `503` |
+| GET    | `/health`   | —                | `200` if ffmpeg + JS runtime present, else `503` |
 
 The MP3 carries ID3 title/artist tags and the video thumbnail as cover art.
 
