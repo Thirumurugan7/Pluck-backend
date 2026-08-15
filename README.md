@@ -73,13 +73,20 @@ curl http://127.0.0.1:8000/health
 
 ## API
 
-| Method | Path                | Body (form)      | Result |
-|--------|---------------------|------------------|--------|
-| POST   | `/download`         | `url=<youtube>`  | streams `audio/mpeg`; filename from the video title. `400` bad URL, `422` download failure |
-| POST   | `/download/spotify` | `url=<track>`    | streams `audio/mpeg`; filename `Artist - Title.mp3`. `400` non-track link, `502` Spotify/creds error, `422` no match/download failure |
-| GET    | `/health`           | —                | `200` if ffmpeg + JS runtime present, else `503`; also reports `spotify` creds status |
+| Method | Path                | Returns |
+|--------|---------------------|---------|
+| `GET`  | `/health`           | Dependency status (ffmpeg, JS runtime, Spotify creds) |
+| `POST` | `/resolve`          | JSON metadata for a YouTube link — no download |
+| `POST` | `/resolve/spotify`  | JSON track metadata **plus** the YouTube video that would supply the audio |
+| `POST` | `/download`         | The MP3, named after the video title |
+| `POST` | `/download/spotify` | The MP3, named `Artist - Title.mp3`, tagged from Spotify |
 
-The MP3 carries ID3 title/artist tags and the video thumbnail as cover art.
+**[Full API reference → `docs/API.md`](docs/API.md)** — every parameter, all
+error codes, Python/JavaScript/shell clients, and troubleshooting.
+
+Interactive docs are served at <http://127.0.0.1:8000/docs> while it's running.
+
+The MP3 carries ID3 title/artist tags and cover art.
 
 ## Tests
 

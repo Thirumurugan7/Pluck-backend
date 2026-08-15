@@ -61,6 +61,17 @@ class DownloadResult:
     title: str
 
 
+@dataclass
+class VideoInfo:
+    """What a video *is*, without downloading it."""
+
+    title: str
+    duration_s: float | None
+    uploader: str | None
+    thumbnail: str | None
+    webpage_url: str
+
+
 def is_valid_youtube_url(url: str) -> bool:
     """True if ``url`` is a plausible YouTube link. No network call."""
     if not url or not isinstance(url, str):
@@ -100,7 +111,7 @@ def content_disposition(filename: str) -> str:
     return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(filename)}"
 
 
-def _extract_with_retry(url: str, ydl_opts: dict) -> dict:
+def _extract_with_retry(url: str, ydl_opts: dict, download: bool = True) -> dict:
     """Run yt-dlp, retrying transient failures with a fresh extraction.
 
     Raises ``DownloadError`` once the failure is permanent or the attempts
@@ -109,12 +120,32 @@ def _extract_with_retry(url: str, ydl_opts: dict) -> dict:
     for attempt in range(1, MAX_DOWNLOAD_ATTEMPTS + 1):
         try:
             with YoutubeDL(ydl_opts) as ydl:
-                return ydl.extract_info(url, download=True)
+                return ydl.extract_info(url, download=download)
         except YtDlpDownloadError as exc:
             if attempt == MAX_DOWNLOAD_ATTEMPTS or not _is_transient(str(exc)):
                 raise DownloadError(str(exc)) from exc
             time.sleep(_RETRY_DELAY_S * attempt)
     raise DownloadError("Download failed after retries.")  # unreachable
+
+
+def probe_video(url: str) -> VideoInfo:
+    """Read a video's metadata without downloading or converting anything."""
+    info = _extract_with_retry(
+        url,
+        {"quiet": True, "no_warnings": True, "noplaylist": True, "skip_download": True},
+        download=False,
+    )
+
+    if info.get("_type") == "playlist" and info.get("entries"):
+        info = info["entries"][0]
+
+    return VideoInfo(
+        title=info.get("title") or "audio",
+        duration_s=info.get("duration"),
+        uploader=info.get("uploader") or info.get("channel"),
+        thumbnail=info.get("thumbnail"),
+        webpage_url=info.get("webpage_url") or url,
+    )
 
 
 def download_mp3(url: str, workdir: Path) -> DownloadResult:

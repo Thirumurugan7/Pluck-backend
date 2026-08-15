@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Optional, Sequence, TypedDict
+from typing import NotRequired, Optional, Sequence, TypedDict
 
 from yt_dlp import YoutubeDL
 from yt_dlp.utils import DownloadError as YtDlpDownloadError
@@ -13,6 +13,7 @@ from spotify import TrackMeta
 class Candidate(TypedDict):
     url: str
     duration: Optional[float]  # seconds, or None if unknown
+    title: NotRequired[Optional[str]]
 
 
 class NoMatchError(Exception):
@@ -50,6 +51,17 @@ def pick_best_match(
 
 def search_youtube(query: str, target_duration_s: Optional[float], n: int = 5) -> str:
     """Search YouTube for ``query`` and return the best-matching watch URL."""
+    return search_youtube_detailed(query, target_duration_s, n)["url"]
+
+
+def search_youtube_detailed(
+    query: str, target_duration_s: Optional[float], n: int = 5
+) -> Candidate:
+    """Like ``search_youtube``, but returns the whole candidate.
+
+    Callers that want to show *what* was matched (title, duration) before
+    committing to a download need more than the URL.
+    """
     ydl_opts = {
         "quiet": True,
         "no_warnings": True,
@@ -71,9 +83,11 @@ def search_youtube(query: str, target_duration_s: Optional[float], n: int = 5) -
         # extract_flat gives bare ids for ytsearch; normalise to a watch URL.
         if not url.startswith("http"):
             url = f"https://www.youtube.com/watch?v={url}"
-        candidates.append({"url": url, "duration": e.get("duration")})
+        candidates.append(
+            {"url": url, "duration": e.get("duration"), "title": e.get("title")}
+        )
 
     if not candidates:
         raise NoMatchError(f"No YouTube results for '{query}'.")
 
-    return pick_best_match(candidates, target_duration_s)["url"]
+    return pick_best_match(candidates, target_duration_s)
