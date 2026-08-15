@@ -41,19 +41,43 @@ curl -X POST http://127.0.0.1:8000/download \
   -OJ
 ```
 
+### Spotify track links
+
+Paste a Spotify **track** link. The backend reads the track's metadata from the
+Spotify API, finds the matching audio on YouTube, downloads it, and tags the MP3
+with Spotify's title/artist/album and album cover. (Spotify audio is DRM'd and
+can't be downloaded directly — the audio comes from YouTube.)
+
+```bash
+curl -X POST http://127.0.0.1:8000/download/spotify \
+  --data-urlencode "url=https://open.spotify.com/track/XXXXXXXXXXXXXXXXXXXXXX" \
+  -OJ
+```
+
+This needs Spotify API credentials. Create a free app at
+<https://developer.spotify.com/dashboard>, copy its Client ID and Client Secret,
+and export them before running (no redirect URI or user login needed):
+
+```bash
+export SPOTIFY_CLIENT_ID=your_client_id
+export SPOTIFY_CLIENT_SECRET=your_client_secret
+./run.sh
+```
+
 Check that ffmpeg is available:
 
 ```bash
 curl http://127.0.0.1:8000/health
-# {"status":"ok","ffmpeg":true,"js_runtime":true}
+# {"status":"ok","ffmpeg":true,"js_runtime":true,"spotify":true}
 ```
 
 ## API
 
-| Method | Path        | Body (form)      | Result |
-|--------|-------------|------------------|--------|
-| POST   | `/download` | `url=<youtube>`  | streams `audio/mpeg`; filename from the video title. `400` bad URL, `422` download failure |
-| GET    | `/health`   | —                | `200` if ffmpeg + JS runtime present, else `503` |
+| Method | Path                | Body (form)      | Result |
+|--------|---------------------|------------------|--------|
+| POST   | `/download`         | `url=<youtube>`  | streams `audio/mpeg`; filename from the video title. `400` bad URL, `422` download failure |
+| POST   | `/download/spotify` | `url=<track>`    | streams `audio/mpeg`; filename `Artist - Title.mp3`. `400` non-track link, `502` Spotify/creds error, `422` no match/download failure |
+| GET    | `/health`           | —                | `200` if ffmpeg + JS runtime present, else `503`; also reports `spotify` creds status |
 
 The MP3 carries ID3 title/artist tags and the video thumbnail as cover art.
 

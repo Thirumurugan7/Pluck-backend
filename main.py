@@ -21,6 +21,15 @@ from downloader import (
     is_valid_youtube_url,
     safe_filename,
 )
+from matcher import NoMatchError, build_query, search_youtube
+from spotify import (
+    SpotifyError,
+    extract_track_id,
+    get_track_metadata,
+    is_valid_spotify_track_url,
+    spotify_creds_configured,
+)
+from tagging import apply_spotify_tags, fetch_cover
 
 logger = logging.getLogger("yt2mp3")
 logging.basicConfig(level=logging.INFO)
@@ -62,6 +71,8 @@ def health() -> JSONResponse:
             "status": "ok" if healthy else "degraded",
             "ffmpeg": ffmpeg_ok,
             "js_runtime": js_ok,
+            # Reported for visibility; not required for YouTube downloads.
+            "spotify": spotify_creds_configured(),
         },
     )
 
@@ -83,6 +94,47 @@ def download(url: str = Form(...)) -> FileResponse:
         raise HTTPException(status_code=500, detail="Unexpected error during download.")
 
     filename = f"{safe_filename(result.title)}.mp3"
+    return FileResponse(
+        path=result.path,
+        media_type="audio/mpeg",
+        headers={"Content-Disposition": content_disposition(filename)},
+        background=BackgroundTask(shutil.rmtree, workdir, ignore_errors=True),
+    )
+
+
+@app.post("/download/spotify")
+def download_spotify(url: str = Form(...)) -> FileResponse:
+    if not is_valid_spotify_track_url(url):
+        raise HTTPException(
+            status_code=400,
+            detail="Provide a Spotify track link (open.spotify.com/track/...). "
+            "Album and playlist links are not supported.",
+        )
+
+    # Resolve metadata from Spotify (audio itself comes from YouTube).
+    try:
+        track_id = extract_track_id(url)
+        meta = get_track_metadata(track_id)
+    except SpotifyError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    workdir = Path(tempfile.mkdtemp(prefix="yt2mp3_sp_"))
+    try:
+        target_s = (meta.duration_ms / 1000.0) if meta.duration_ms else None
+        video_url = search_youtube(build_query(meta), target_s)
+        result = download_mp3(video_url, workdir)
+        apply_spotify_tags(result.path, meta, fetch_cover(meta.cover_url))
+    except (NoMatchError, DownloadError) as exc:
+        shutil.rmtree(workdir, ignore_errors=True)
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception:  # noqa: BLE001
+        shutil.rmtree(workdir, ignore_errors=True)
+        logger.exception("Unexpected error for Spotify url %s", url)
+        raise HTTPException(status_code=500, detail="Unexpected error during download.")
+
+    filename = f"{safe_filename(f'{meta.artist} - {meta.title}')}.mp3"
     return FileResponse(
         path=result.path,
         media_type="audio/mpeg",
