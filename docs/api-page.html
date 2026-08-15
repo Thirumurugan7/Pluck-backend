@@ -1,0 +1,710 @@
+<title>yt2mp3 API Reference</title>
+<style>
+  :root {
+    --bg: #faf8f9;
+    --surface: #ffffff;
+    --surface-2: #f3eff1;
+    --ink: #1a1418;
+    --muted: #6b6068;
+    --line: #e5dfe3;
+    --accent: #c81e63;
+    --accent-soft: #fdeef4;
+    --ok: #197e4e;
+    --warn: #8a5a00;
+    --err: #b3261e;
+    --code-bg: #161215;
+    --code-ink: #eee6ea;
+
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --measure: 70ch;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141013;
+      --surface: #1c171b;
+      --surface-2: #241d23;
+      --ink: #f2ecef;
+      --muted: #a79ba3;
+      --line: #332b31;
+      --accent: #ff5c93;
+      --accent-soft: #2c1622;
+      --ok: #57c98b;
+      --warn: #d9a441;
+      --err: #ff8579;
+      --code-bg: #0e0b0d;
+      --code-ink: #e8dfe4;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #141013;
+    --surface: #1c171b;
+    --surface-2: #241d23;
+    --ink: #f2ecef;
+    --muted: #a79ba3;
+    --line: #332b31;
+    --accent: #ff5c93;
+    --accent-soft: #2c1622;
+    --ok: #57c98b;
+    --warn: #d9a441;
+    --err: #ff8579;
+    --code-bg: #0e0b0d;
+    --code-ink: #e8dfe4;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell {
+    display: grid;
+    grid-template-columns: 210px minmax(0, 1fr);
+    gap: 56px;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 28px 120px;
+  }
+
+  /* ---------- nav rail ---------- */
+
+  nav {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    max-height: 100vh;
+    overflow-y: auto;
+    padding: 48px 0;
+    font-family: var(--mono);
+    font-size: 12.5px;
+  }
+
+  nav .rail-label {
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
+    font-size: 10.5px;
+    color: var(--muted);
+    margin: 26px 0 10px;
+  }
+
+  nav .rail-label:first-child { margin-top: 0; }
+
+  nav a {
+    display: block;
+    padding: 4px 0;
+    color: var(--ink);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    padding-left: 10px;
+    margin-left: -12px;
+    transition: border-color 0.12s, color 0.12s;
+  }
+
+  nav a:hover, nav a:focus-visible {
+    color: var(--accent);
+    border-left-color: var(--accent);
+  }
+
+  /* ---------- masthead ---------- */
+
+  main { padding-top: 48px; max-width: var(--measure); }
+
+  header.masthead { padding: 24px 0 40px; border-bottom: 1px solid var(--line); }
+
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(30px, 5vw, 42px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px;
+    text-wrap: balance;
+  }
+
+  .tagline { font-size: 19px; color: var(--muted); margin: 0 0 24px; text-wrap: balance; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .chip {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--muted);
+    background: var(--surface);
+  }
+
+  .chip strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- typography ---------- */
+
+  h2 {
+    font-family: var(--mono);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    color: var(--muted);
+    font-weight: 600;
+    margin: 64px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  h3 { font-size: 18px; margin: 32px 0 8px; font-weight: 600; text-wrap: balance; }
+
+  p { margin: 0 0 16px; }
+
+  a { color: var(--accent); }
+
+  code:not(pre code) {
+    font-family: var(--mono);
+    font-size: 0.875em;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+
+  /* ---------- the bridge diagram ---------- */
+
+  .bridge {
+    margin: 32px 0;
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+
+  .bridge svg { width: 100%; height: auto; display: block; }
+
+  .bridge figcaption {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+
+  /* ---------- endpoints ---------- */
+
+  .endpoint {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface);
+    padding: 22px 24px;
+    margin: 0 0 20px;
+    scroll-margin-top: 24px;
+  }
+
+  .sig { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+
+  .method {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .path { font-family: var(--mono); font-size: 16px; font-weight: 600; }
+
+  .cost {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  /* ---------- tables ---------- */
+
+  .scroller { overflow-x: auto; margin: 16px 0; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+
+  th, td {
+    text-align: left;
+    padding: 9px 14px 9px 0;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+
+  th {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+
+  td.mono, td code { font-family: var(--mono); }
+
+  .status {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .s2xx { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+  .s4xx { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+  .s5xx { color: var(--err); background: color-mix(in srgb, var(--err) 12%, transparent); }
+
+  /* ---------- code ---------- */
+
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 16px 18px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+
+  pre code { font-family: inherit; }
+
+  .lbl {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
+    color: var(--muted);
+    margin: 22px 0 -6px;
+  }
+
+  /* ---------- tabs ---------- */
+
+  .tabs { display: flex; gap: 4px; margin: 20px 0 0; flex-wrap: wrap; }
+
+  .tab {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    padding: 7px 14px;
+    border: 1px solid var(--line);
+    border-bottom: none;
+    border-radius: 7px 7px 0 0;
+    background: var(--surface-2);
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .tab[aria-selected="true"] { background: var(--code-bg); color: var(--code-ink); border-color: var(--code-bg); }
+
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .panel[hidden] { display: none; }
+
+  .panel pre { margin-top: 0; border-radius: 0 8px 8px 8px; }
+
+  /* ---------- callout ---------- */
+
+  .note {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+    margin: 24px 0;
+    font-size: 15px;
+  }
+
+  .note p:last-child { margin-bottom: 0; }
+
+  footer {
+    margin-top: 72px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    font-size: 13.5px;
+    color: var(--muted);
+  }
+
+  @media (max-width: 820px) {
+    .shell { grid-template-columns: 1fr; gap: 0; padding: 0 20px 80px; }
+    nav { position: static; max-height: none; padding: 32px 0 0; }
+    nav .rail-inner { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+    nav .rail-label { width: 100%; margin: 14px 0 2px; }
+    main { padding-top: 24px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="shell">
+  <nav>
+    <div class="rail-inner">
+      <div class="rail-label">Start</div>
+      <a href="#quick-start">Quick start</a>
+      <a href="#where-audio">Where audio comes from</a>
+      <div class="rail-label">Endpoints</div>
+      <a href="#health">GET /health</a>
+      <a href="#resolve">POST /resolve</a>
+      <a href="#resolve-spotify">POST /resolve/spotify</a>
+      <a href="#download">POST /download</a>
+      <a href="#download-spotify">POST /download/spotify</a>
+      <div class="rail-label">Reference</div>
+      <a href="#errors">Errors</a>
+      <a href="#clients">Clients</a>
+      <a href="#setup">Setup</a>
+      <a href="#troubleshooting">Troubleshooting</a>
+    </div>
+  </nav>
+
+  <main>
+    <header class="masthead">
+      <h1>yt2mp3</h1>
+      <p class="tagline">A local HTTP API that turns a YouTube or Spotify track link into a tagged 320&nbsp;kbps MP3.</p>
+      <div class="chips">
+        <span class="chip"><strong>http://127.0.0.1:8000</strong></span>
+        <span class="chip">no auth</span>
+        <span class="chip">localhost only</span>
+        <span class="chip">form-encoded POST bodies</span>
+      </div>
+    </header>
+
+    <h2 id="quick-start">Quick start</h2>
+    <pre><code># 1. start the server
+./run.sh
+
+# 2. check its dependencies
+curl http://127.0.0.1:8000/health
+
+# 3. download something (-OJ saves using the server-provided filename)
+curl -X POST http://127.0.0.1:8000/download \
+  --data-urlencode "url=https://youtu.be/dQw4w9WgXcQ" -OJ</code></pre>
+
+    <h2 id="where-audio">Where the audio comes from</h2>
+    <p>Spotify audio is DRM-protected and cannot be downloaded by any third-party client. For Spotify links this API reads <em>metadata</em> from the Spotify Web API, sources the <em>audio</em> from YouTube, and stamps Spotify's title, artist, album, and cover art onto the result.</p>
+
+    <figure class="bridge">
+      <svg viewBox="0 0 640 200" role="img" aria-label="A Spotify track link supplies title, artist, album and cover art. The audio is searched for and downloaded from YouTube. Both streams merge into one tagged MP3.">
+        <g font-family="ui-monospace, SF Mono, Menlo, monospace" font-size="12">
+          <!-- Spotify branch -->
+          <rect x="8" y="14" width="150" height="52" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.28"/>
+          <text x="83" y="35" text-anchor="middle" fill="currentColor" font-size="12.5" font-weight="600">Spotify link</text>
+          <text x="83" y="52" text-anchor="middle" fill="currentColor" fill-opacity="0.6" font-size="11">track/&lt;id&gt;</text>
+
+          <rect x="222" y="14" width="176" height="52" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.28"/>
+          <text x="310" y="35" text-anchor="middle" fill="currentColor" font-size="12.5" font-weight="600">Web API</text>
+          <text x="310" y="52" text-anchor="middle" fill="currentColor" fill-opacity="0.6" font-size="11">title · artist · album · art</text>
+
+          <!-- YouTube branch -->
+          <rect x="8" y="134" width="150" height="52" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.28"/>
+          <text x="83" y="155" text-anchor="middle" fill="currentColor" font-size="12.5" font-weight="600">YouTube search</text>
+          <text x="83" y="172" text-anchor="middle" fill="currentColor" fill-opacity="0.6" font-size="11">closest duration</text>
+
+          <rect x="222" y="134" width="176" height="52" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.28"/>
+          <text x="310" y="155" text-anchor="middle" fill="currentColor" font-size="12.5" font-weight="600">yt-dlp + ffmpeg</text>
+          <text x="310" y="172" text-anchor="middle" fill="currentColor" fill-opacity="0.6" font-size="11">the actual audio</text>
+
+          <!-- result -->
+          <rect x="470" y="74" width="162" height="52" rx="7" fill="var(--accent-soft)" stroke="var(--accent)" stroke-opacity="0.9"/>
+          <text x="551" y="95" text-anchor="middle" fill="var(--accent)" font-size="12.5" font-weight="700">tagged .mp3</text>
+          <text x="551" y="112" text-anchor="middle" fill="var(--accent)" fill-opacity="0.75" font-size="11">320 kbps + cover</text>
+
+          <!-- arrows -->
+          <g stroke="currentColor" stroke-opacity="0.35" fill="none" stroke-width="1.5">
+            <path d="M158 40 H214"/>
+            <path d="M158 160 H214"/>
+            <path d="M398 40 H434 Q446 40 446 52 V88 H464"/>
+            <path d="M398 160 H434 Q446 160 446 148 V112 H464"/>
+          </g>
+          <g fill="currentColor" fill-opacity="0.35">
+            <path d="M214 40 l-7 -3.5 v7 z"/>
+            <path d="M214 160 l-7 -3.5 v7 z"/>
+            <path d="M470 88 l-7 -3.5 v7 z"/>
+            <path d="M470 112 l-7 -3.5 v7 z"/>
+          </g>
+
+          <text x="186" y="34" text-anchor="middle" fill="currentColor" fill-opacity="0.55" font-size="9.5" letter-spacing="0.08em">READS</text>
+          <text x="186" y="154" text-anchor="middle" fill="currentColor" fill-opacity="0.55" font-size="9.5" letter-spacing="0.08em">FETCHES</text>
+        </g>
+      </svg>
+      <figcaption>The Spotify link is an <em>address</em>, not a source. Metadata comes down the top path; every second of audio comes down the bottom one.</figcaption>
+    </figure>
+
+    <p>Call <a href="#resolve-spotify"><code>/resolve/spotify</code></a> first to see exactly which YouTube video would be used, before spending a download on it.</p>
+
+    <h2 id="endpoints">Endpoints</h2>
+
+    <section class="endpoint" id="health">
+      <div class="sig"><span class="method">GET</span><span class="path">/health</span><span class="cost">instant</span></div>
+      <p>Reports whether the external tools the service depends on are present.</p>
+      <pre><code>{ "status": "ok", "ffmpeg": true, "js_runtime": true, "spotify": true }</code></pre>
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">status</td><td><code>"ok"</code> when ffmpeg <em>and</em> a JS runtime are present, else <code>"degraded"</code></td></tr>
+            <tr><td class="mono">ffmpeg</td><td>Required to convert and tag. Without it every download fails.</td></tr>
+            <tr><td class="mono">js_runtime</td><td><code>deno</code>, <code>node</code>, or <code>bun</code> — needed to decipher YouTube stream signatures. Without one, most downloads fail with <code>HTTP 403</code>.</td></tr>
+            <tr><td class="mono">spotify</td><td>Credentials configured. Only the Spotify routes need this, so it never affects <code>status</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><span class="status s2xx">200</span> healthy &nbsp; <span class="status s5xx">503</span> ffmpeg or JS runtime missing</p>
+    </section>
+
+    <section class="endpoint" id="resolve">
+      <div class="sig"><span class="method">POST</span><span class="path">/resolve</span><span class="cost">~1s</span></div>
+      <p>Look up what a YouTube link points at, without downloading it. Cheap enough to call on every paste.</p>
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">url</td><td class="mono">string, required</td><td>A <code>watch</code>, <code>youtu.be</code>, <code>shorts</code>, or <code>embed</code> link</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lbl">Response 200</p>
+      <pre><code>{
+  "title": "Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)",
+  "duration_s": 213.0,
+  "uploader": "Rick Astley",
+  "thumbnail": "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+  "webpage_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+}</code></pre>
+      <p><code>duration_s</code>, <code>uploader</code>, and <code>thumbnail</code> may be <code>null</code> for unusual videos.</p>
+      <p><span class="status s4xx">400</span> <code>invalid_youtube_url</code> &nbsp; <span class="status s4xx">422</span> <code>download_failed</code></p>
+    </section>
+
+    <section class="endpoint" id="resolve-spotify">
+      <div class="sig"><span class="method">POST</span><span class="path">/resolve/spotify</span><span class="cost">~2s</span></div>
+      <p>Read a Spotify track's metadata <em>and</em> show which YouTube video would supply its audio — the preview step before committing to a download.</p>
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">url</td><td class="mono">string, required</td><td>A Spotify <strong>track</strong> link or <code>spotify:track:&lt;id&gt;</code> URI. Album, playlist, and artist links are rejected.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lbl">Response 200</p>
+      <pre><code>{
+  "title": "Dheema",
+  "artist": "Anirudh Ravichander",
+  "album": "Love Insurance Kompany (Original Motion Picture Soundtrack)",
+  "duration_s": 235.102,
+  "cover_url": "https://i.scdn.co/image/ab67616d0000b27333c6ec9923…",
+  "matched_url": "https://www.youtube.com/watch?v=H1frBzuWqqM",
+  "matched_title": "Love Insurance Kompany - Dheema Video | Pradeep Ranganathan…",
+  "matched_duration_s": 238.0,
+  "duration_delta_s": 2.898
+}</code></pre>
+      <div class="note">
+        <p><strong>Judging the match.</strong> The matcher searches <code>"{artist} {title}"</code> and picks the result whose duration is closest to Spotify's. Two fields tell you whether to trust it:</p>
+        <p><code>duration_delta_s</code> under ~2s is a confident match; a large delta means an extended mix, a loop, or the wrong song. And because ranking is by duration alone, a lyric video or re-upload can beat the official audio — so check <code>matched_title</code> too. If it looks wrong, pick the video yourself and use <code>/download</code>.</p>
+      </div>
+      <p><span class="status s4xx">400</span> <code>invalid_spotify_url</code> &nbsp; <span class="status s4xx">422</span> <code>no_match</code> &nbsp; <span class="status s5xx">502</span> <code>spotify_error</code></p>
+    </section>
+
+    <section class="endpoint" id="download">
+      <div class="sig"><span class="method">POST</span><span class="path">/download</span><span class="cost">10–60s</span></div>
+      <p>Download a YouTube video as a 320&nbsp;kbps MP3 with ID3 tags and the video thumbnail embedded as cover art.</p>
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">url</td><td class="mono">string, required</td><td>A <code>watch</code>, <code>youtu.be</code>, <code>shorts</code>, or <code>embed</code> link</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="lbl">Response 200 — the raw MP3</p>
+      <pre><code>Content-Type: audio/mpeg
+Content-Disposition: attachment; filename="&lt;video title&gt;.mp3"; filename*=UTF-8''…</code></pre>
+      <p>The filename comes from the video title, so expect suffixes like <code>(Official Video)</code>. Pass <code>-OJ</code> to curl to honor it — without <code>-J</code>, curl names the file after the URL path (<code>download</code>) instead.</p>
+      <p>Transient YouTube failures — <code>403</code>, <code>429</code>, <code>5xx</code>, timeouts — are retried up to three times internally, so a single hiccup stays invisible.</p>
+      <p><span class="status s4xx">400</span> <code>invalid_youtube_url</code> &nbsp; <span class="status s4xx">422</span> <code>download_failed</code> &nbsp; <span class="status s5xx">500</span> <code>internal_error</code></p>
+    </section>
+
+    <section class="endpoint" id="download-spotify">
+      <div class="sig"><span class="method">POST</span><span class="path">/download/spotify</span><span class="cost">15–90s</span></div>
+      <p>Resolve a Spotify track, fetch the matching audio from YouTube, and overwrite the tags with Spotify's metadata plus the album cover.</p>
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">url</td><td class="mono">string, required</td><td>A Spotify <strong>track</strong> link or <code>spotify:track:&lt;id&gt;</code> URI</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Returns the MP3 named <code>Artist - Title.mp3</code>, carrying ID3 <code>TIT2</code>/<code>TPE1</code>/<code>TALB</code> copied verbatim from Spotify and Spotify's album art embedded as <code>APIC</code>, byte-identical to what Spotify serves. If the cover download fails the request still succeeds — you get the MP3 with tags and no artwork.</p>
+      <p>Requires <code>SPOTIFY_CLIENT_ID</code> and <code>SPOTIFY_CLIENT_SECRET</code>; see <a href="#setup">Setup</a>.</p>
+      <p><span class="status s4xx">400</span> <code>invalid_spotify_url</code> &nbsp; <span class="status s4xx">422</span> <code>no_match</code> · <code>download_failed</code> &nbsp; <span class="status s5xx">502</span> <code>spotify_error</code></p>
+    </section>
+
+    <h2 id="errors">Errors</h2>
+    <p>Every failure returns the same shape. <strong>Branch on <code>code</code>, not on <code>detail</code></strong> — the prose may be reworded, the codes are stable.</p>
+    <pre><code>{ "detail": "Provide a valid YouTube URL.", "code": "invalid_youtube_url" }</code></pre>
+    <div class="scroller">
+      <table>
+        <thead><tr><th>Code</th><th>HTTP</th><th>Meaning</th><th>What to do</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">invalid_youtube_url</td><td><span class="status s4xx">400</span></td><td>Not a recognizable YouTube link</td><td>Check the URL</td></tr>
+          <tr><td class="mono">invalid_spotify_url</td><td><span class="status s4xx">400</span></td><td>Not a Spotify <em>track</em> link</td><td>Open the track itself and copy its link</td></tr>
+          <tr><td class="mono">invalid_request</td><td><span class="status s4xx">422</span></td><td>The <code>url</code> field is missing or malformed</td><td>Send <code>--data-urlencode "url=…"</code></td></tr>
+          <tr><td class="mono">spotify_error</td><td><span class="status s5xx">502</span></td><td>Missing/invalid credentials, or the Spotify API failed</td><td>Check env vars, then Spotify's status</td></tr>
+          <tr><td class="mono">no_match</td><td><span class="status s4xx">422</span></td><td>YouTube search returned nothing usable</td><td>Use <code>/download</code> with a URL you choose</td></tr>
+          <tr><td class="mono">download_failed</td><td><span class="status s4xx">422</span></td><td>Private, removed, region-locked, or 403 after 3 retries</td><td><code>detail</code> carries yt-dlp's reason</td></tr>
+          <tr><td class="mono">internal_error</td><td><span class="status s5xx">500</span></td><td>Unexpected server-side failure</td><td>Check the server log</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="clients">Clients</h2>
+    <p>Each of these takes either link type and picks the right endpoint.</p>
+
+    <div class="tabs" role="tablist" aria-label="Client language">
+      <button class="tab" role="tab" id="t-sh" aria-controls="p-sh" aria-selected="true">shell</button>
+      <button class="tab" role="tab" id="t-py" aria-controls="p-py" aria-selected="false">python</button>
+      <button class="tab" role="tab" id="t-js" aria-controls="p-js" aria-selected="false">javascript</button>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p-sh" aria-labelledby="t-sh">
+      <pre><code>mp3() {
+  local url="$1" endpoint="download"
+  [[ "$url" == *"spotify.com"* || "$url" == spotify:* ]] &amp;&amp; endpoint="download/spotify"
+  curl -sS -X POST "http://127.0.0.1:8000/$endpoint" \
+    --data-urlencode "url=$url" -OJ -w '%{http_code}\n'
+}
+
+# mp3 https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b</code></pre>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p-py" aria-labelledby="t-py" hidden>
+      <pre><code>import re
+import requests
+
+BASE = "http://127.0.0.1:8000"
+
+
+def preview(url: str) -> dict:
+    """See what would be downloaded, without downloading it."""
+    route = "/resolve/spotify" if "spotify" in url else "/resolve"
+    resp = requests.post(BASE + route, data={"url": url}, timeout=60)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def download(url: str, out_dir: str = ".") -> str:
+    route = "/download/spotify" if "spotify" in url else "/download"
+    resp = requests.post(BASE + route, data={"url": url}, timeout=600, stream=True)
+
+    if resp.status_code != 200:
+        err = resp.json()
+        raise RuntimeError(f"[{err['code']}] {err['detail']}")
+
+    disposition = resp.headers.get("content-disposition", "")
+    name = re.search(r'filename="([^"]+)"', disposition)
+    path = f"{out_dir}/{name.group(1) if name else 'audio.mp3'}"
+
+    with open(path, "wb") as fh:
+        for chunk in resp.iter_content(chunk_size=64 * 1024):
+            fh.write(chunk)
+    return path</code></pre>
+    </div>
+
+    <div class="panel" role="tabpanel" id="p-js" aria-labelledby="t-js" hidden>
+      <pre><code>const BASE = "http://127.0.0.1:8000";
+
+async function preview(url) {
+  const route = url.includes("spotify") ? "/resolve/spotify" : "/resolve";
+  const resp = await fetch(BASE + route, {
+    method: "POST",
+    body: new URLSearchParams({ url }),
+  });
+  const body = await resp.json();
+  if (!resp.ok) throw new Error(`[${body.code}] ${body.detail}`);
+  return body;
+}
+
+async function download(url) {
+  const route = url.includes("spotify") ? "/download/spotify" : "/download";
+  const resp = await fetch(BASE + route, {
+    method: "POST",
+    body: new URLSearchParams({ url }),
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error(`[${err.code}] ${err.detail}`);
+  }
+
+  const disposition = resp.headers.get("content-disposition") ?? "";
+  const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? "audio.mp3";
+  return { filename, blob: await resp.blob() };
+}</code></pre>
+    </div>
+
+    <h2 id="setup">Setup</h2>
+    <p>The Spotify routes need credentials from a free app at <a href="https://developer.spotify.com/dashboard">developer.spotify.com/dashboard</a>. No redirect URI or user login is needed — this uses the client-credentials flow, which reaches public catalog metadata only.</p>
+    <pre><code>export SPOTIFY_CLIENT_ID=your_client_id
+export SPOTIFY_CLIENT_SECRET=your_client_secret
+./run.sh</code></pre>
+    <p>They must be exported in the shell that starts the server — a <code>.env</code> file is not read. Verify with <code>/health</code> → <code>"spotify": true</code>.</p>
+
+    <h2 id="troubleshooting">Troubleshooting</h2>
+
+    <h3>Every download fails with HTTP 403</h3>
+    <p>Install a JavaScript runtime: <code>brew install deno</code>. yt-dlp needs one to decipher YouTube stream signatures. Confirm with <code>/health</code> → <code>"js_runtime": true</code>. Occasional one-off 403s are normal and already retried internally.</p>
+
+    <h3>curl: (23) Failure writing output to destination</h3>
+    <p>The server sent the MP3 fine — you'll see <code>200</code>. <code>curl -J</code> simply refuses to overwrite a file that already exists. Delete or rename it, or drop <code>-J</code> and name the file yourself with <code>-o</code>.</p>
+
+    <h3>curl saved a file literally named "download"</h3>
+    <p>You used <code>-O</code> without <code>-J</code>. Use <code>-OJ</code> so curl honors the <code>Content-Disposition</code> filename.</p>
+
+    <h3>Wrong song, or a live/cover version</h3>
+    <p>The matcher ranks by duration alone. Call <code>/resolve/spotify</code> first: if <code>matched_title</code> looks wrong or <code>duration_delta_s</code> is large, pick the video yourself and use <code>/download</code>.</p>
+
+    <h3>Conversion produced no MP3</h3>
+    <p>ffmpeg is missing or failed. <code>brew install ffmpeg</code>, then confirm <code>/health</code> → <code>"ffmpeg": true</code>.</p>
+
+    <footer>
+      <p><strong>On quality.</strong> The MP3 is 320&nbsp;kbps, but that describes the output encoder, not the source. YouTube serves roughly 130&nbsp;kbps Opus, which ffmpeg re-encodes to 320&nbsp;kbps MP3 — a lossy-to-lossy transcode. The file faithfully reproduces its source; it is not CD quality, and 192&nbsp;kbps would sound the same at 60% of the size. For genuinely lossless audio, buy the track from Bandcamp or Qobuz.</p>
+    </footer>
+  </main>
+</div>
+
+<script>
+  const tabs = Array.from(document.querySelectorAll('.tab'));
+
+  function select(tab) {
+    tabs.forEach((t) => {
+      const on = t === tab;
+      t.setAttribute('aria-selected', String(on));
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+  }
+
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => select(tab));
+    tab.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+      next.focus();
+      select(next);
+    });
+  });
+</script>
