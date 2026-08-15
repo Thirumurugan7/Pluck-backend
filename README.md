@@ -98,3 +98,6 @@ YT2MP3_INTEGRATION=1 pytest tests/test_integration.py
 - No auth and bound to localhost by design — single user, your machine only.
 - Filenames come from the video title, so you may occasionally see suffixes
   like `(Official Video)`.
+- YouTube occasionally rejects a stream URL with `HTTP 403`. The backend
+  re-extracts and retries up to 3 times before returning `422`, so an
+  occasional hiccup is invisible to you.
